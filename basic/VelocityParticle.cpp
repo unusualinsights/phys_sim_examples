@@ -87,17 +87,17 @@ void RenderScene() {
   // which we call |t|, of this simulation.
   static double t = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
 
+  // Compute the current velocity vector (u(x, y, z, t), v(x, y, z, t)) at the
+  // current (old) time |t|. In case you're wondering, z is 0 here (note the
+  // z-coordinate we pass to the method call below to draw the sphere).
+  GLdouble u = -(x - 0.5 * cos(t * t) * cos(t));
+  GLdouble v = -(y - 0.5 * cos(t * t) * sin(t));
+
   // Update dt.
   // You're dealing with variable time steps (|dt| can change each time
   // RenderScene() is called) already! What a superstar you are!
-  double tPlusDt = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
-  double dt = tPlusDt - t;
-
-  // Compute the new velocity vector (u(x, y, z, t), v(x, y, z, t)) at time |t|.
-  // In case you're wondering, z is 0 here (note the z-coordinate we pass to the
-  // method call below to draw the sphere).
-  GLdouble u = -(x - 0.5 * cos(t * t) * cos(t));
-  GLdouble v = -(y - 0.5 * cos(t * t) * sin(t));
+  double t_plus_dt = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
+  double dt = t_plus_dt - t;
 
   // Compute the new position of the sphere now that it has a new velocity!
   // This is the 'Forward Euler' integration scheme: your new position equals
@@ -107,9 +107,9 @@ void RenderScene() {
   y += dt * v;  // y(t + dt) = y(t) + dt * v(x, y, z, t)
 
   // Save this new time for the next time step.
-  // This is |tPlusDt| now but next time this method is called, this will be the
-  // new |t|.
-  t = tPlusDt;
+  // This is |t_plus_dt| now but next time this method is called, this will be
+  // the new |t|.
+  t = t_plus_dt;
 
   SetColorToRed();
   DrawSphereCenteredAt(x, y, 0.0);
