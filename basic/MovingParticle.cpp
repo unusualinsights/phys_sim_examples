@@ -1,5 +1,6 @@
 #include <GL/freeglut.h>
 
+#include <cmath>
 #include <iostream>
 
 // Sets the background color to black.
@@ -56,7 +57,7 @@ void DrawSphereCenteredAt(GLdouble center_x, GLdouble center_y,
   glPushMatrix();
   glTranslated(center_x, center_y, center_z);
 
-  const GLdouble kRadius = 0.25;
+  const GLdouble kRadius = 0.1;
   const GLint kLongitudeSlices = 50;
   const GLint kLatitudeStacks = 50;
   glutSolidSphere(kRadius, kLongitudeSlices, kLatitudeStacks);
@@ -69,8 +70,18 @@ void RenderScene() {
   DrawBackground();
   TurnOnLight();
 
+  // t = # of seconds since glutInit was called
+  double t = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
+
+  // Compute a new position for the sphere that will move it around in a circle
+  // of radius 0.5 about the origin as time, |t|, elapses.
+  GLdouble x = 0.5 * cos(t);
+  GLdouble y = 0.5 * sin(t);
+
   SetColorToRed();
-  DrawSphereCenteredAt(0.0, 0.0, 0.0);
+
+  // Draw the sphere centered at this new position, (x, y).
+  DrawSphereCenteredAt(x, y, 0.0);
 
   glutSwapBuffers();
 }
@@ -87,7 +98,7 @@ int main(int argc, char** argv) {
   const int kTopLeftY = 100;
   glutInitWindowPosition(kTopLeftX, kTopLeftY);
 
-  int win = glutCreateWindow("Hello, Sphere!");
+  int win = glutCreateWindow("Moving Particle");
   std::cout << "Window with ID " << win << " opened successfully." << std::endl;
 
   glutDisplayFunc(RenderScene);
