@@ -101,8 +101,8 @@ void RenderScene() {
 
   // Compute the new position of the sphere now that it has a new velocity!
   // This is the 'Forward Euler' integration scheme: your new position equals
-  // your position plus how far you moved from the old to the new time, moving
-  // at the speed you had at the old time.
+  // your old position plus how far you moved from the old to the new time,
+  // moving at the speed you had at the old time.
   x += dt * u;  // x(t + dt) = x(t) + dt * u(x, y, z, t)
   y += dt * v;  // y(t + dt) = y(t) + dt * v(x, y, z, t)
 
