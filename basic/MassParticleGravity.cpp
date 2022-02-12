@@ -91,11 +91,10 @@ Vector2D MakeUpdatedVelocity(const Vector2D& current_velocity, double mass,
                   .y = current_velocity.y + dt * net_force.y / mass};
 }
 
-// Returns the (x, y) position of a particle at time |current_time| + |dt| given
-// its |current_position| at |current_time| and its |velocity| returned by
+// Returns the (x, y) position of a particle at the current time + |dt| given
+// its |current_position| at the current time and its |velocity| returned by
 // MakeUpdatedVelocity.
-Point2D MakeUpdatedPosition(const Point2D& current_position,
-                            double current_time, double dt,
+Point2D MakeUpdatedPosition(const Point2D& current_position, double dt,
                             const Vector2D& velocity) {
   // Update position: symplectic Euler integration step 2
   //
@@ -128,7 +127,7 @@ class Particle {
         vel_(vel0) {}
 
   // Computes this Particle's updated position and renders it onto the screen.
-  void UpdateAndRender(double current_time, double dt) {
+  void UpdateAndRender(double dt) {
     // Use the force acting on the Particle to update its velocity.
     //
     // Pass the net force acting on this Particle as the |net_force| parameter.
@@ -136,7 +135,7 @@ class Particle {
     vel_ = MakeUpdatedVelocity(vel_, mass_, weight_, dt);
 
     // Use the updated velocity to update the Particle's position.
-    pos_ = MakeUpdatedPosition(pos_, current_time, dt, vel_);
+    pos_ = MakeUpdatedPosition(pos_, dt, vel_);
 
     DrawParticleAt(pos_);
   }
@@ -171,7 +170,7 @@ class ParticleSimulator {
 
     // Compute the Particle's position at |next_time| and draw it at that
     // location.
-    particle_.UpdateAndRender(current_time_, dt);
+    particle_.UpdateAndRender(dt);
 
     // It's the new time now, but it will be the old time next time this method
     // is called!
