@@ -1,7 +1,19 @@
 #include <GL/freeglut.h>
 
-#include <cmath>
 #include <iostream>
+
+// A data type representing a point (x, y)
+struct Point2D {
+  GLdouble x;
+  GLdouble y;
+};
+
+// A data type representing a vector (x, y)
+typedef Point2D Vector2D;
+
+// Acceleration due to gravity on the Moon
+// https://en.wikipedia.org/wiki/Gravitation_of_the_Moon
+const Vector2D kGMoon{.x = 0.0, .y = -1.625};
 
 // Returns how many seconds have elapsed since glutInit was called.
 double GetCurrentTimeInSeconds() { return glutGet(GLUT_ELAPSED_TIME) / 1000.0; }
@@ -68,29 +80,30 @@ void DrawSphereCenteredAt(GLdouble center_x, GLdouble center_y,
   glPopMatrix();
 }
 
-// A data type representing a point (x, y)
-struct Point2D {
-  GLdouble x;
-  GLdouble y;
-};
+// Returns the x and y coordinates of the velocity of a Particle at the end of a
+// time step of size |dt| if its current (before the time step) velocity is
+// |current_velocity| and it has the given |mass| and experiences the specified
+// |net_force|.
+Vector2D MakeUpdatedVelocity(const Vector2D& current_velocity, double mass,
+                             const Vector2D& net_force, double dt) {
+  // Update velocity: symplectic Euler integration step 1
+  return Vector2D{.x = current_velocity.x + dt * net_force.x / mass,
+                  .y = current_velocity.y + dt * net_force.y / mass};
+}
 
 // Returns the (x, y) position of a particle at time |current_time| + |dt| given
-// its |current_position| at |current_time|. This function models the velocity
-// field in which the particle moves.
+// its |current_position| at |current_time| and its |velocity| returned by
+// MakeUpdatedVelocity.
 Point2D MakeUpdatedPosition(const Point2D& current_position,
-                            double current_time, double dt) {
-  // Compute the Particle's velocity at the old time, |t|, using our strange
-  // velocity field's formula.
-  double half_cos_t2 = 0.5 * cos(current_time * current_time);
-  GLdouble u = -(current_position.x - half_cos_t2 * cos(current_time));
-  GLdouble v = -(current_position.y - half_cos_t2 * sin(current_time));
-
-  // Compute the Particle's new position at the new time, |t| + |dt|, using
-  // Forward Euler integration.
+                            double current_time, double dt,
+                            const Vector2D& velocity) {
+  // Update position: symplectic Euler integration step 2
+  //
+  // Compute the Particle's new position at the new time, |t| + |dt|.
   // x_(t + dt) = x_(t) + dt * u(x_, y_, 0, t)
   // y_(t + dt) = y_(t) + dt * v(x_, y_, 0, t)
-  return Point2D{.x = current_position.x + dt * u,
-                 .y = current_position.y + dt * v};
+  return Point2D{.x = current_position.x + dt * velocity.x,
+                 .y = current_position.y + dt * velocity.y};
 }
 
 // Draws this Particle at (current_position.x, current_position.y, 0.0).
@@ -106,17 +119,33 @@ void DrawParticleAt(const Point2D& current_position) {
 // called.
 class Particle {
  public:
-  // Creates a Particle object initially at (0, 0, 0).
-  Particle() : pos_{.x = 0.0, .y = 0.0} {}
+  // Creates a Particle with the given |mass| starting at position |pos0| with
+  // initial velocity |vel0|.
+  Particle(double mass, Point2D pos0, Vector2D vel0)
+      : mass_(mass),
+        weight_{.x = kGMoon.x * mass, .y = kGMoon.y * mass},
+        pos_(pos0),
+        vel_(vel0) {}
 
   // Computes this Particle's updated position and renders it onto the screen.
   void UpdateAndRender(double current_time, double dt) {
-    pos_ = MakeUpdatedPosition(pos_, current_time, dt);
+    // Use the force acting on the Particle to update its velocity.
+    //
+    // Pass the net force acting on this Particle as the |net_force| parameter.
+    // In this case, the only force acting on this Particle is its |weight_|.
+    vel_ = MakeUpdatedVelocity(vel_, mass_, weight_, dt);
+
+    // Use the updated velocity to update the Particle's position.
+    pos_ = MakeUpdatedPosition(pos_, current_time, dt, vel_);
+
     DrawParticleAt(pos_);
   }
 
  private:
-  Point2D pos_;  // This Particle's current position, (pos_.x, pos_.y, 0.0)
+  const double mass_;      // This Particle's mass
+  const Vector2D weight_;  // This Particle's weight on the Moon
+  Point2D pos_;   // This Particle's current position, (pos_.x, pos_.y, 0.0)
+  Vector2D vel_;  // This Particle's current velocity, (vel_.x, vel_.y, 0.0)
 };
 
 // A data type encapsulating (holding, owning) a Particle to simulate and a
@@ -128,7 +157,10 @@ class Particle {
 class ParticleSimulator {
  public:
   // Creates a Particle and a time value.
-  ParticleSimulator() : current_time_(GetCurrentTimeInSeconds()) {}
+  ParticleSimulator()
+      : particle_(0.01, Point2D{.x = -0.5, .y = -0.5},
+                  Vector2D{.x = 0.5, .y = 2.0}),
+        current_time_(GetCurrentTimeInSeconds()) {}
 
   // Updates the simulation time and directs any Particles to update and render
   // themselves at the new simulation time.
@@ -181,7 +213,7 @@ int main(int argc, char** argv) {
   const int kTopLeftY = 100;
   glutInitWindowPosition(kTopLeftX, kTopLeftY);
 
-  int win = glutCreateWindow("Particle Moving in a Velocity Field");
+  int win = glutCreateWindow("Particle Flying over the Moon");
   std::cout << "Window with ID " << win << " opened successfully." << std::endl;
 
   particle_simulator = new ParticleSimulator();
